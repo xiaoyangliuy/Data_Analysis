@@ -12,3 +12,4 @@ This repository contains the script I developed during PhD to process data. Used
 6. Python script used in software Dragonfly for 3D images: batch load, segment and mesh the 3D dataset to calculate interfacial area and volume
 7. Error function fitting of SIMS data
 8. Plot X-ray diffraction data: plot in situ integrated diffraction patterns in one plot
+9. Gaussian_fit.py: Do 2D Gaussian fit on 2D image to find the beam position (x,y). Then use the relative position difference to shift image.
