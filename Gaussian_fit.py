@@ -31,8 +31,10 @@ fn = 'test-1.tif'
 img = io.imread(fn)
 beam_x_list = []
 beam_y_list = []
-ini_x = img.shape[2]//2
-ini_y = img.shape[1]//2
+sigma_x_list = []
+sigma_y_list = []
+ini_x = img.shape[2]//2 #initial guess for beam position x
+ini_y = img.shape[1]//2 #initial guess for beam position y
 for z in range(img.shape[0]):
     ref = img[z,:,:]
     # Create x and y indices
@@ -41,7 +43,7 @@ for z in range(img.shape[0]):
     x, y = np.meshgrid(x, y)
 
     # Initial guess for the parameters
-    initial_guess = (np.max(ref), ini_x, ini_y, 20, 20, 0, 10)
+    initial_guess = (np.max(ref), ini_x, ini_y, 10, 10, 0, 10)
     # Bounds for the parameters
     bounds = (
         [0, 0, 0, 0, 0, -np.pi/4, 0],  # Lower bounds
@@ -54,12 +56,16 @@ for z in range(img.shape[0]):
     # Extract the beam position from the fit parameters
     beam_x = popt[1]
     beam_y = popt[2]
+    sigma_x = popt[3]
+    sigma_y = popt[4]
 
-    print(f"Beam position: x = {beam_x}, y = {beam_y}")
+    print(f"Slice: {z}, Beam position: x = {beam_x}, y = {beam_y}, sigma_x = {sigma_x}, sigma_y = {sigma_y}")
     beam_x_list.append(beam_x)
     beam_y_list.append(beam_y)
-    ini_x = beam_x
-    ini_y = beam_y
+    sigma_x_list.append(float(sigma_x))
+    sigma_y_list.append(float(sigma_y))
+    ini_x = beam_x #update initial guess for beam position x
+    ini_y = beam_y #update initial guess for beam position y
     # Use the optimized parameters to create the fitted Gaussian
     data_fitted = gaussian_2d((x, y), *popt)
 
