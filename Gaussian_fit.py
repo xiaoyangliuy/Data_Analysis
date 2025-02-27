@@ -5,16 +5,25 @@ from scipy import signal, optimize
 from skimage import io
 import matplotlib.pyplot as plt
 #%%
-path = r'C:\Users\lxiaoyang\Desktop'
-os.chdir(path)
-fn = 'test-1.tif'
-img = io.imread(fn)
-#ref = img[1,:,:]
-#io.imshow(ref)
+def read_images_from_folder(folder):
+    '''
+    images have same size (.tif)
+    to read all images in a folder as a stack
+    '''
+    import glob
+    import numpy as np
+    from skimage import io
+    files = sorted(glob.glob(os.path.join(folder, '*.tif')))
+    img_ref = io.imread(files[0])
+    img = np.zeros([len(files), img_ref.shape[0], img_ref.shape[0]])
+    for i, file in enumerate(files):
+        img[i,:,:] = io.imread(file)
+    return img
 
-#%%
-# Define a 2D Gaussian function
 def gaussian_2d(xy, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+    '''
+    Define a 2D Gaussian function
+    '''
     x, y = xy
     xo = float(xo)
     yo = float(yo)
@@ -25,16 +34,15 @@ def gaussian_2d(xy, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
     return g.ravel()
 
 #%%
-path = r'C:\Users\lxiaoyang\Desktop'
-os.chdir(path)
-fn = 'test-1.tif'
-img = io.imread(fn)
+folder = r'C:\Users\lxiaoyang\Desktop\Zyla\Zyla\P2_S5'
+img = read_images_from_folder(folder)
 beam_x_list = []
 beam_y_list = []
 sigma_x_list = []
 sigma_y_list = []
-ini_x = img.shape[2]//2 #initial guess for beam position x
-ini_y = img.shape[1]//2 #initial guess for beam position y
+ini_x = np.where(img[0] == img[0].max())[1][0] #initial guess for beam position x
+ini_y = np.where(img[0] == img[0].max())[0][0] #initial guess for beam position y
+ini_sigma_x, ini_sigma_y = 10, 10 #initial guess for size
 for z in range(img.shape[0]):
     ref = img[z,:,:]
     # Create x and y indices
@@ -43,7 +51,7 @@ for z in range(img.shape[0]):
     x, y = np.meshgrid(x, y)
 
     # Initial guess for the parameters
-    initial_guess = (np.max(ref), ini_x, ini_y, 10, 10, 0, 10)
+    initial_guess = (np.max(ref), ini_x, ini_y, ini_sigma_x, ini_sigma_y, 0, 10)
     # Bounds for the parameters
     bounds = (
         [0, 0, 0, 0, 0, -np.pi/4, 0],  # Lower bounds
@@ -64,8 +72,12 @@ for z in range(img.shape[0]):
     beam_y_list.append(beam_y)
     sigma_x_list.append(float(sigma_x))
     sigma_y_list.append(float(sigma_y))
-    ini_x = beam_x #update initial guess for beam position x
-    ini_y = beam_y #update initial guess for beam position y
+    #if use previous beam position as initial guess
+    #ini_x = beam_x #update initial guess for beam position x
+    #ini_y = beam_y #update initial guess for beam position y
+    #if always use max position of each image as initial guess
+    ini_x = np.where(img[z,:,:] == img[z,:,:].max())[1][0] #initial guess for beam position x
+    ini_y = np.where(img[z,:,:] == img[z,:,:].max())[0][0] #initial guess for beam position y
     # Use the optimized parameters to create the fitted Gaussian
     data_fitted = gaussian_2d((x, y), *popt)
 
@@ -74,12 +86,12 @@ for z in range(img.shape[0]):
     ax.imshow(ref, cmap=plt.cm.jet, origin='lower', extent=(x.min(), x.max(), y.min(), y.max()))
     ax.contour(x, y, data_fitted.reshape(ref.shape[0], ref.shape[1]), 8, colors='w')
     plt.show()
-
+print('Done')
 # %%
 #shift image
 from scipy.ndimage import shift
-fn = 'test-1.tif'
-img = io.imread(fn)
+#fn = 'test-1.tif'
+#img = io.imread(fn)
 ref = img[0,:,:]
 mv_y = []
 mv_x = []
@@ -96,4 +108,6 @@ for i,y2 in enumerate(mv_y):
     img[i+1,:,:] = shift(img[i+1,:,:], (y2, mv_x[i]))
 # %%
 #save image
-io.imsave('test-1_shifted.tif',img)
+last_part = os.path.basename(folder) #image folder name
+save_path = r'C:\Users\lxiaoyang\Desktop\Zyla\Zyla\aligned'
+io.imsave(f'{save_path}\\{last_part}.tif',np.float32(img))
